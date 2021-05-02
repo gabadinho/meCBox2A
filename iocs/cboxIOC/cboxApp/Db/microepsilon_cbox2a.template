@@ -1,0 +1,24 @@
+record (longin,"$(P)$(R)1") {
+#record (ai,"$(P)$(R)") {
+#    field(PINI, "YES")
+    field(DTYP,"asynInt32")
+    field(INP,"@asyn($(PORT),0,0)CB2A_SENSOR_1")
+    field(SCAN, "$(SCAN)")
+}
+
+record (longout,"$(P)$(R)2") {
+#record (ai,"$(P)$(R)") {
+#    field(PINI, "YES")
+    field(DTYP,"asynInt32")
+    field(OUT,"@asyn($(PORT),0,0)CB2A_SENSOR_2")
+    field(SCAN, "$(SCAN)")
+}
+
+
+record(asyn,"$(P)$(R):ASYN") {
+    field(DTYP,"asynRecordDevice")
+    field(PORT,"$(PORT)")
+    field(ADDR,"$(ADDR)")
+    field(OMAX,"$(OMAX)")
+    field(IMAX,"$(IMAX)")
+}
