@@ -4,10 +4,10 @@
 #ifdef __cplusplus
 #include "asynPortDriver.h"
 
-
-//#define P_CB2A_CONTROLLER_String "CB2A_CONTROLLER"
-#define P_CB2A_SENSOR_1_String   "CB2A_SENSOR_1"
-#define P_CB2A_SENSOR_2_String   "CB2A_SENSOR_2"
+#define P_CB2A_FLAGSLO_String  "CB2A_FLAGSLO"
+#define P_CB2A_SERIALNR_String "CB2A_SERIALNR"
+#define P_CB2A_SENSOR_1_String "CB2A_SENSOR_1"
+#define P_CB2A_SENSOR_2_String "CB2A_SENSOR_2"
 
 class cbox2aDriver: public asynPortDriver {
 public:
@@ -31,10 +31,11 @@ protected:
 
     /*
     asynUser *pasynUserCBox;
-    char *pasynPortName;
     */
+    char *pasynPortName;
 
-    //int P_CB2A_CONTROLLER;
+    int P_CB2A_FLAGSLO;
+    int P_CB2A_SERIALNR;
     int P_CB2A_SENSOR_1;
     int P_CB2A_SENSOR_2;
 

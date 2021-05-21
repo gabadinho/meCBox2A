@@ -25,15 +25,15 @@
 #MODULES = /path/to/modules
 #MYMODULE = $(MODULES)/my-module
 
-MODULES = /home/jg/SWDev/EPICS/modules/synApps/support
+MODULES = /home/gabadinho/SWDev/EPICS/modules/synApps/support
 ASYN = $(MODULES)/asyn-R4-36
-MECBOX2A = /home/jg/SWDev/meCBox2A
+MECBOX2A = /home/gabadinho/SWDev/meCBox2A
 
 # If using the sequencer, point SNCSEQ at its top directory:
 #SNCSEQ = $(MODULES)/seq-ver
 
 # EPICS_BASE should appear last so earlier modules can override stuff:
-EPICS_BASE = /home/jg/SWDev/EPICS/base
+EPICS_BASE = /home/gabadinho/SWDev/EPICS/base
 
 # Set RULES here if you want to use build rules from somewhere
 # other than EPICS_BASE:

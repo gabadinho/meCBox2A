@@ -11,13 +11,13 @@ cd "${TOP}"
 dbLoadDatabase "dbd/cbox.dbd"
 cbox_registerRecordDeviceDriver pdbbase
 
-drvAsynSerialPortConfigure("FAKETTY", "/dev/pts/4")
+drvAsynSerialPortConfigure("FAKETTY", "/dev/pts/2")
 cbox2aDriverConfigure("MYPORT", "FAKETTY", 2, 3)
 
 ## Load record instances
 #dbLoadRecords("db/xxx.db","user=jg")
 
-dbLoadRecords("db/microepsilon_cbox2a.template", "P=P:,R=R,PORT=MYPORT,SCAN=Passive,ADDR=0,OMAX=0,IMAX=0")
+dbLoadRecords("${MECBOX2A}/db/microepsilon_cbox2a.template", "P=P:,R=R,PORT=MYPORT,SCAN=Passive,ADDR=0,OMAX=0,IMAX=0")
 
 cd "${TOP}/iocBoot/${IOC}"
 iocInit

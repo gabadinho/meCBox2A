@@ -9,8 +9,12 @@
 
 //#include "asynOctetSyncIO.h"
 
+#define BUFFER_SIZE 1024
+#define FRAME_SIZE  36
 
 /*
+
+socat -d -d pty,raw,echo=0 pty,raw,echo=0
 
 http://epics.isis.stfc.ac.uk/doxygen/lvDCOM.old/html/lvDCOMDriver_8h_source.html
 http://epics.isis.stfc.ac.uk/doxygen/lvDCOM.old/html/lvDCOMDriver_8cpp_source.html
@@ -39,14 +43,16 @@ cbox2aDriver::cbox2aDriver(const char *portName, const char *asynPortName, int s
     
     printf("cbox2aDriver::cbox2aDriver XXX CONSTRUCTOR!!!!!\n");
 
-    //pasynPortName = epicsStrDup(asynPortName);
+    pasynPortName = epicsStrDup(asynPortName);
 
 
     //asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "Creating Fetura+ controller %s to asyn %s\n", portName, asynPortName);
 
     //createParam(P_CB2A_CONTROLLER_String, asynParamInt32, &P_CB2A_CONTROLLER);
-    createParam(P_CB2A_SENSOR_1_String,   asynParamInt32, &P_CB2A_SENSOR_1);
-    createParam(P_CB2A_SENSOR_2_String,   asynParamInt32, &P_CB2A_SENSOR_2);
+    createParam(P_CB2A_FLAGSLO_String,  asynParamInt32, &P_CB2A_FLAGSLO);
+    createParam(P_CB2A_SERIALNR_String, asynParamInt32, &P_CB2A_SERIALNR);
+    createParam(P_CB2A_SENSOR_1_String, asynParamInt32, &P_CB2A_SENSOR_1);
+    createParam(P_CB2A_SENSOR_2_String, asynParamInt32, &P_CB2A_SENSOR_2);
 
 /*
     status = pasynOctetSyncIO->connect(asynPortName, 0, &pasynUserController_, NULL);
@@ -65,12 +71,12 @@ cbox2aDriver::cbox2aDriver(const char *portName, const char *asynPortName, int s
                     (EPICSTHREADFUNC)asynPollerC, (void *)this);
 */
 
-    /*
+ 
   epicsThreadCreate("cbox2aTask", 
                     epicsThreadPriorityLow,
                     epicsThreadGetStackSize(epicsThreadStackMedium),
                     (EPICSTHREADFUNC)cbox2aTaskC, (void *)this);
-
+/*
     printf("PARAMS: %s %s %s\n", CB2A_CONTROLLER_String, CB2A_SENSOR_1_String, CB2A_SENSOR_2_String);
     printf("PARAMS: %d %d %d\n", CB2A_CONTROLLER, CB2A_SENSOR_1, CB2A_SENSOR_2);
     */
@@ -151,11 +157,108 @@ asynStatus cbox2aDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
     return status;
 }
 
+void cbox2aDriver::cbox2aTask() {
+    static const char *functionName = "cbox2aTask";
+    asynStatus status;
+    asynUser *pasynUser;
+    asynInterface *pasynInterface;
+    asynOctet *pasynOctet;
+    void *octetPvt;
+    char charData[256];
+    size_t nRequested=10;
+    size_t nRead;
+    int eomReason;
+    int val=0;
+
+    pasynUser = pasynManager->createAsynUser(0, 0);
+    pasynUser->timeout = 10;
+    status = pasynManager->connectDevice(pasynUser, pasynPortName, 0);
+
+    pasynInterface = pasynManager->findInterface(pasynUser, asynOctetType, 1);
+    if(!pasynInterface) {;
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
+            "%s::%s: findInterface failed for asynOctet, status=%d\n",
+            driverName, functionName, status);
+    }
+    pasynOctet = (asynOctet *)pasynInterface->pinterface;
+    octetPvt = pasynInterface->drvPvt;
+
+/*
+    pasynUser = pasynManager->createAsynUser(0, 0);
+    pasynUser->timeout = 10;
+    //pasynUser->timeout = TetrAMM_TIMEOUT;
+    status = pasynManager->connectDevice(pasynUser, pasynPortName, 0);
+    if(status!=asynSuccess) {
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
+            "%s::%s: connectDevice failed, status=%d\n",
+            driverName, functionName, status);
+    }
+
+    pasynOctetSyncIO->setInputEos(pasynUser, "", 0);
+    pasynOctetSyncIO->setOutputEos(pasynUser, "", 0);
+
+
+    pasynInterface = pasynManager->findInterface(pasynUser, asynOctetType, 1);
+    if(!pasynInterface) {;
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
+            "%s::%s: findInterface failed for asynOctet, status=%d\n",
+            driverName, functionName, status);
+    }
+    pasynOctet = (asynOctet *)pasynInterface->pinterface;
+    octetPvt = pasynInterface->drvPvt;
+*/
+
+    getIntegerParam(P_CB2A_SENSOR_1, &val);
+    printf("VAL IS %d\n",val);
+    getIntegerParam(P_CB2A_SENSOR_2, &val);
+    printf("VAL IS %d\n",val);
+
+
+    while (1) {
+
+            printf("AAAAAAAA\n");
+            pasynManager->lockPort(pasynUser);
+            status = pasynOctet->read(octetPvt, pasynUser, charData, nRequested, 
+                                      &nRead, &eomReason);
+
+            pasynManager->unlockPort(pasynUser);
+
+			lock();
+            printf("BBBBBBBB %d\n",nRead);
+            setIntegerParam(P_CB2A_SENSOR_1, nRead);
+            callParamCallbacks();
+			unlock();
+
+    }
+
+/*
+    char buffer[1024];
+    size_t read;
+    int reason;
+    int counter=0;
+    while (1) {
+        printf("POLLER!!!\n");
+        //lock(); // IS THIS SUPPOSED THE LOCK TO BE USED?! OR SHOULD I CREATE A SPECIFIC LOCK FOR pasynUserController_ ?!?!?!
+        pasynUserController_->lock();
+        pasynOctetSyncIO->read(pasynUserController_, buffer, 1024, 10, &read, &reason);
+        
+        setIntegerParam(0, CB2A_SENSOR_1, counter++);
+        //pAxis->setIntegerParam(motorStatusDone_, 0);
+
+        callParamCallbacks();
+        
+        pasynUserController_->unlock();
+        //unlock();
+
+        printf("%d %c\n",read,buffer[0]);
+    }
+*/
+}
 
 
 static void cbox2aTaskC(void *drvPvt) {
     cbox2aDriver *pController = (cbox2aDriver*)drvPvt;
-    //pController->cbox2aTask();
+    pController->cbox2aTask();
 }
 
 
@@ -195,3 +298,9 @@ epicsExportRegistrar(MicroEpsilonCBox2ARegister);
 
 }
 
+
+/*
+ * TO DO:
+ * - mbbo of sensor types: None, IDL1420-50
+ * - ao of range: 50.0
+ */
