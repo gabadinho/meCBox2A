@@ -11,7 +11,7 @@ cd "${TOP}"
 dbLoadDatabase "dbd/cbox.dbd"
 cbox_registerRecordDeviceDriver pdbbase
 
-drvAsynSerialPortConfigure("FAKETTY", "/dev/pts/2")
+drvAsynSerialPortConfigure("FAKETTY", "/dev/pts/3")
 cbox2aDriverConfigure("MYPORT", "FAKETTY", 2, 3)
 
 ## Load record instances

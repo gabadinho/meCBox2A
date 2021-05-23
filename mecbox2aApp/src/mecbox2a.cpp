@@ -24,10 +24,11 @@ https://stackoverflow.com/questions/52187/virtual-serial-port-for-linux
 
 static const char *driverName="meCBox2A";
 
-
 static void cbox2aTaskC(void *drvPvt);
 
-cbox2aDriver::cbox2aDriver(const char *portName, const char *asynPortName, int sensor1Type, int sensor2Type):
+
+
+cbox2aDriver::cbox2aDriver(const char *portName, const char *asynPortName):
     asynPortDriver(portName, 
                    1, /* maxAddr */ 
                    asynInt32Mask | asynFloat64Mask  | asynDrvUserMask, /* Interface mask */
@@ -35,10 +36,7 @@ cbox2aDriver::cbox2aDriver(const char *portName, const char *asynPortName, int s
                    0, /* asynFlags.  This driver does not block and it is not multi-device, so flag is 0 */
                    1, /* Autoconnect */
                    0, /* Default priority */
-                   0) /* Default stack size*/,
-    sensor1Type{sensor1Type},
-    sensor2Type{sensor2Type} {
-    
+                   0) /* Default stack size*/ {
     asynStatus status;
     
     printf("cbox2aDriver::cbox2aDriver XXX CONSTRUCTOR!!!!!\n");
@@ -51,7 +49,13 @@ cbox2aDriver::cbox2aDriver(const char *portName, const char *asynPortName, int s
     //createParam(P_CB2A_CONTROLLER_String, asynParamInt32, &P_CB2A_CONTROLLER);
     createParam(P_CB2A_FLAGSLO_String,  asynParamInt32, &P_CB2A_FLAGSLO);
     createParam(P_CB2A_SERIALNR_String, asynParamInt32, &P_CB2A_SERIALNR);
+
+    createParam(P_CB2A_TYPE_1_String,   asynParamInt32, &P_CB2A_TYPE_1);
+    createParam(P_CB2A_RANGE_1_String,  asynParamInt32, &P_CB2A_RANGE_1);
     createParam(P_CB2A_SENSOR_1_String, asynParamInt32, &P_CB2A_SENSOR_1);
+
+    createParam(P_CB2A_TYPE_2_String,   asynParamInt32, &P_CB2A_TYPE_2);
+    createParam(P_CB2A_RANGE_2_String,  asynParamInt32, &P_CB2A_RANGE_2);
     createParam(P_CB2A_SENSOR_2_String, asynParamInt32, &P_CB2A_SENSOR_2);
 
 /*
@@ -72,15 +76,7 @@ cbox2aDriver::cbox2aDriver(const char *portName, const char *asynPortName, int s
 */
 
  
-  epicsThreadCreate("cbox2aTask", 
-                    epicsThreadPriorityLow,
-                    epicsThreadGetStackSize(epicsThreadStackMedium),
-                    (EPICSTHREADFUNC)cbox2aTaskC, (void *)this);
-/*
-    printf("PARAMS: %s %s %s\n", CB2A_CONTROLLER_String, CB2A_SENSOR_1_String, CB2A_SENSOR_2_String);
-    printf("PARAMS: %d %d %d\n", CB2A_CONTROLLER, CB2A_SENSOR_1, CB2A_SENSOR_2);
-    */
-
+    epicsThreadCreate("cbox2aTask", epicsThreadPriorityLow, epicsThreadGetStackSize(epicsThreadStackMedium), (EPICSTHREADFUNC)cbox2aTaskC, (void *)this);
 }
 
 
@@ -112,7 +108,7 @@ asynStatus cbox2aDriver::readInt32(asynUser *pasynUser, epicsInt32 *value) {
 
 
 /** Called when asyn clients call pasynInt32->write().
-  * This function sends a signal to the simTask thread if the value of P_Run has changed.
+  * Updates the sensor range record depending on its type.
   * For all parameters it sets the value in the parameter library and calls any registered callbacks..
   * \param[in] pasynUser pasynUser structure that encodes the reason and address.
   * \param[in] value Value to write. */
@@ -120,40 +116,30 @@ asynStatus cbox2aDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 {
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
-    const char *paramName;
-    const char* functionName = "writeInt32";
-
-    printf("AAAAAAAAAAAAAAAAAAAAA\n"); 
+    const char *param_name;
+    const char* function_name = "writeInt32";
+    epicsInt32 sensor_range;
 
     /* Set the parameter in the parameter library. */
     status = (asynStatus)setIntegerParam(function, value);
-    
     /* Fetch the parameter string name for possible use in debugging */
-    getParamName(function, &paramName);
+    getParamName(function, &param_name);
 
-    printf("AAAAAAA %d %s %d\n", status, paramName, value);
-
-    if (function == P_CB2A_SENSOR_1) {
-        printf("P_CB2A_SENSOR_1\n");
-    } else if (function == P_CB2A_SENSOR_2) {
-        printf("P_CB2A_SENSOR_2\n");
-        //setTimePerDiv();
-    } else {
-        /* All other parameters just get set in parameter list, no need to
-         * act on them here */
+    if (function == P_CB2A_TYPE_1) {
+        getIntegerParam(P_CB2A_TYPE_1, &sensor_range);
+        setIntegerParam(P_CB2A_RANGE_1, sensor_range);
+    } else if (function == P_CB2A_TYPE_2) {
+        getIntegerParam(P_CB2A_TYPE_2, &sensor_range);
+        setIntegerParam(P_CB2A_RANGE_2, sensor_range);
     }
     
     /* Do callbacks so higher layers see any changes */
-    status = (asynStatus) callParamCallbacks();
-    
-    if (status) 
-        epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize, 
-                  "%s:%s: status=%d, function=%d, name=%s, value=%d", 
-                  driverName, functionName, status, function, paramName, value);
-    else        
-        asynPrint(pasynUser, ASYN_TRACEIO_DRIVER, 
-              "%s:%s: function=%d, name=%s, value=%d\n", 
-              driverName, functionName, function, paramName, value);
+    status = (asynStatus) callParamCallbacks();    
+    if (status) {
+        epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize, "%s:%s: status=%d, function=%d, name=%s, value=%d", driverName, function_name, status, function, param_name, value);
+    } else {
+        asynPrint(pasynUser, ASYN_TRACEIO_DRIVER, "%s:%s: function=%d, name=%s, value=%d\n", driverName, function_name, function, param_name, value);
+    }
     return status;
 }
 
@@ -263,20 +249,19 @@ static void cbox2aTaskC(void *drvPvt) {
 
 
 
-
 extern "C" {
 
-/** EPICS iocsh callable function to call constructor for the testAsynPortDriver class.
+/** EPICS iocsh callable function to call constructor for the cbox2aDriver class.
   * \param[in] portName The name of the asyn port driver to be created.
   * \param[in] maxPoints The maximum  number of points in the volt and time arrays */
 int cbox2aDriverConfigure(const char *portName, const char *asynPortName, int sensor1Type, int sensor2Type) {
-    new cbox2aDriver(portName, asynPortName, sensor1Type, sensor2Type);
+    new cbox2aDriver(portName, asynPortName);
     return asynSuccess;
 }
 
 
-/* EPICS iocsh shell commands */
 
+/* EPICS iocsh shell commands */
 static const iocshArg initArg0 = { "Port name",      iocshArgString };
 static const iocshArg initArg1 = { "Asyn port name", iocshArgString };
 static const iocshArg initArg2 = { "sensor 1 type",  iocshArgInt };
@@ -297,10 +282,3 @@ void MicroEpsilonCBox2ARegister(void) {
 epicsExportRegistrar(MicroEpsilonCBox2ARegister);
 
 }
-
-
-/*
- * TO DO:
- * - mbbo of sensor types: None, IDL1420-50
- * - ao of range: 50.0
- */
