@@ -28,6 +28,9 @@ static void cbox2aTaskC(void *drvPvt);
 
 
 
+/** Constructor for the cbox2aDriver class.
+  * \param[in] portName The name of the asyn port driver to be created.
+  * \param[in] asynPortName The name of the asyn communication port to the device. */
 cbox2aDriver::cbox2aDriver(const char *portName, const char *asynPortName):
     asynPortDriver(portName, 
                    1, /* maxAddr */ 
@@ -38,15 +41,12 @@ cbox2aDriver::cbox2aDriver(const char *portName, const char *asynPortName):
                    0, /* Default priority */
                    0) /* Default stack size*/ {
     asynStatus status;
-    
-    printf("cbox2aDriver::cbox2aDriver XXX CONSTRUCTOR!!!!!\n");
+    const char* function_name = "cbox2aDriver";
+
+    asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s:%s Creating Micro Epsilon CBox 2A %s to asyn %s\n", driverName, function_name, portName, asynPortName);
 
     pasynPortName = epicsStrDup(asynPortName);
 
-
-    //asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "Creating Fetura+ controller %s to asyn %s\n", portName, asynPortName);
-
-    //createParam(P_CB2A_CONTROLLER_String, asynParamInt32, &P_CB2A_CONTROLLER);
     createParam(P_CB2A_FLAGSLO_String,  asynParamInt32, &P_CB2A_FLAGSLO);
     createParam(P_CB2A_SERIALNR_String, asynParamInt32, &P_CB2A_SERIALNR);
 
@@ -57,24 +57,6 @@ cbox2aDriver::cbox2aDriver(const char *portName, const char *asynPortName):
     createParam(P_CB2A_TYPE_2_String,   asynParamInt32, &P_CB2A_TYPE_2);
     createParam(P_CB2A_RANGE_2_String,  asynParamInt32, &P_CB2A_RANGE_2);
     createParam(P_CB2A_SENSOR_2_String, asynParamInt32, &P_CB2A_SENSOR_2);
-
-/*
-    status = pasynOctetSyncIO->connect(asynPortName, 0, &pasynUserController_, NULL);
-    if (status) {
-        //asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s:%s: cannot connect to fetura+ %s controller\n", driverName, functionName, portName);
-        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "cannot connect to fetura+ %s controller\n",  portName);
-    } else {
-        printf("OK!!!!!!!!!!!!!!\n");
-        pasynOctetSyncIO->setInputEos(pasynUserController_, "", 0);
-        pasynOctetSyncIO->setOutputEos(pasynUserController_, "", 0);
-    }
-
-  epicsThreadCreate("asynPoller", 
-                    epicsThreadPriorityLow,
-                    epicsThreadGetStackSize(epicsThreadStackMedium),
-                    (EPICSTHREADFUNC)asynPollerC, (void *)this);
-*/
-
  
     epicsThreadCreate("cbox2aTask", epicsThreadPriorityLow, epicsThreadGetStackSize(epicsThreadStackMedium), (EPICSTHREADFUNC)cbox2aTaskC, (void *)this);
 }
@@ -111,7 +93,8 @@ asynStatus cbox2aDriver::readInt32(asynUser *pasynUser, epicsInt32 *value) {
   * Updates the sensor range record depending on its type.
   * For all parameters it sets the value in the parameter library and calls any registered callbacks..
   * \param[in] pasynUser pasynUser structure that encodes the reason and address.
-  * \param[in] value Value to write. */
+  * \param[in] value Value to write. 
+  * \return Status of asyn library calls, */
 asynStatus cbox2aDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 {
     int function = pasynUser->reason;
@@ -122,6 +105,7 @@ asynStatus cbox2aDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 
     /* Set the parameter in the parameter library. */
     status = (asynStatus)setIntegerParam(function, value);
+    /* CHECK STATUS, DONT GO FURTHER IF ERROR!!! */
     /* Fetch the parameter string name for possible use in debugging */
     getParamName(function, &param_name);
 
@@ -133,8 +117,8 @@ asynStatus cbox2aDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
         setIntegerParam(P_CB2A_RANGE_2, sensor_range);
     }
     
-    /* Do callbacks so higher layers see any changes */
-    status = (asynStatus) callParamCallbacks();    
+    /* Do callbacks so higher layers see changes */
+    status = (asynStatus)callParamCallbacks();    
     if (status) {
         epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize, "%s:%s: status=%d, function=%d, name=%s, value=%d", driverName, function_name, status, function, param_name, value);
     } else {
@@ -143,8 +127,16 @@ asynStatus cbox2aDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
     return status;
 }
 
+
+
+/** Thread function to handle communication to the device.
+  * DETAILS HERE!!! */
+/*
+ * TO DO: LOWER TIMEOUT
+ *        WHEN TIMEOUT: SET ALARM TO ERROR!!!
+ */
 void cbox2aDriver::cbox2aTask() {
-    static const char *functionName = "cbox2aTask";
+    static const char *function_name = "cbox2aTask";
     asynStatus status;
     asynUser *pasynUser;
     asynInterface *pasynInterface;
@@ -161,87 +153,45 @@ void cbox2aDriver::cbox2aTask() {
     status = pasynManager->connectDevice(pasynUser, pasynPortName, 0);
 
     pasynInterface = pasynManager->findInterface(pasynUser, asynOctetType, 1);
-    if(!pasynInterface) {;
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-            "%s::%s: findInterface failed for asynOctet, status=%d\n",
-            driverName, functionName, status);
+    if (!pasynInterface) {
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s: findInterface failed for asynOctet, status=%d\n", driverName, function_name, status);
+        return;
     }
+
     pasynOctet = (asynOctet *)pasynInterface->pinterface;
     octetPvt = pasynInterface->drvPvt;
 
-/*
-    pasynUser = pasynManager->createAsynUser(0, 0);
-    pasynUser->timeout = 10;
-    //pasynUser->timeout = TetrAMM_TIMEOUT;
-    status = pasynManager->connectDevice(pasynUser, pasynPortName, 0);
-    if(status!=asynSuccess) {
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-            "%s::%s: connectDevice failed, status=%d\n",
-            driverName, functionName, status);
-    }
+    while (true) {
+        printf("AAAAAAAA\n");
+        pasynManager->lockPort(pasynUser);
+        status = pasynOctet->read(octetPvt, pasynUser, charData, nRequested,  &nRead, &eomReason);
 
-    pasynOctetSyncIO->setInputEos(pasynUser, "", 0);
-    pasynOctetSyncIO->setOutputEos(pasynUser, "", 0);
+		/*
+        if (nRead==0) pasynUser->auxStatus=1;
+        else  pasynUser->auxStatus=0;
+        */
 
+        pasynManager->unlockPort(pasynUser);
 
-    pasynInterface = pasynManager->findInterface(pasynUser, asynOctetType, 1);
-    if(!pasynInterface) {;
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-            "%s::%s: findInterface failed for asynOctet, status=%d\n",
-            driverName, functionName, status);
-    }
-    pasynOctet = (asynOctet *)pasynInterface->pinterface;
-    octetPvt = pasynInterface->drvPvt;
-*/
-
-    getIntegerParam(P_CB2A_SENSOR_1, &val);
-    printf("VAL IS %d\n",val);
-    getIntegerParam(P_CB2A_SENSOR_2, &val);
-    printf("VAL IS %d\n",val);
-
-
-    while (1) {
-
-            printf("AAAAAAAA\n");
-            pasynManager->lockPort(pasynUser);
-            status = pasynOctet->read(octetPvt, pasynUser, charData, nRequested, 
-                                      &nRead, &eomReason);
-
-            pasynManager->unlockPort(pasynUser);
-
-			lock();
-            printf("BBBBBBBB %d\n",nRead);
-            setIntegerParam(P_CB2A_SENSOR_1, nRead);
-            callParamCallbacks();
-			unlock();
-
-    }
-
-/*
-    char buffer[1024];
-    size_t read;
-    int reason;
-    int counter=0;
-    while (1) {
-        printf("POLLER!!!\n");
-        //lock(); // IS THIS SUPPOSED THE LOCK TO BE USED?! OR SHOULD I CREATE A SPECIFIC LOCK FOR pasynUserController_ ?!?!?!
-        pasynUserController_->lock();
-        pasynOctetSyncIO->read(pasynUserController_, buffer, 1024, 10, &read, &reason);
-        
-        setIntegerParam(0, CB2A_SENSOR_1, counter++);
-        //pAxis->setIntegerParam(motorStatusDone_, 0);
+		lock();
+        printf("BBBBBBBB %d\n",nRead);
+        setIntegerParam(P_CB2A_SENSOR_1, nRead);
+		if (nRead==0) {
+          setParamAlarmStatus(P_CB2A_SENSOR_1, 1);
+          setParamAlarmSeverity(P_CB2A_SENSOR_1, 2);
+        } else {
+          setParamAlarmStatus(P_CB2A_SENSOR_1, 0);
+          setParamAlarmSeverity(P_CB2A_SENSOR_1, 0);
+		}
 
         callParamCallbacks();
-        
-        pasynUserController_->unlock();
-        //unlock();
-
-        printf("%d %c\n",read,buffer[0]);
+        unlock();
     }
-*/
 }
 
 
+/** EPICS iocsh callable function to call constructor for the cbox2aDriver class.
+  * \param[in] portName The name of the asyn port driver to be created. */
 static void cbox2aTaskC(void *drvPvt) {
     cbox2aDriver *pController = (cbox2aDriver*)drvPvt;
     pController->cbox2aTask();
@@ -253,8 +203,9 @@ extern "C" {
 
 /** EPICS iocsh callable function to call constructor for the cbox2aDriver class.
   * \param[in] portName The name of the asyn port driver to be created.
-  * \param[in] maxPoints The maximum  number of points in the volt and time arrays */
-int cbox2aDriverConfigure(const char *portName, const char *asynPortName, int sensor1Type, int sensor2Type) {
+  * \param[in] asynPortName The name of the asyn communication port to the device.
+  * \return Always asynSuccess */
+int cbox2aDriverConfigure(const char *portName, const char *asynPortName) {
     new cbox2aDriver(portName, asynPortName);
     return asynSuccess;
 }
@@ -264,15 +215,11 @@ int cbox2aDriverConfigure(const char *portName, const char *asynPortName, int se
 /* EPICS iocsh shell commands */
 static const iocshArg initArg0 = { "Port name",      iocshArgString };
 static const iocshArg initArg1 = { "Asyn port name", iocshArgString };
-static const iocshArg initArg2 = { "sensor 1 type",  iocshArgInt };
-static const iocshArg initArg3 = { "sensor 2 type",  iocshArgInt };
 static const iocshArg * const initArgs[] = { &initArg0,
-                                             &initArg1,
-                                             &initArg2,
-                                             &initArg3 };
-static const iocshFuncDef initFuncDef = { "cbox2aDriverConfigure", 4, initArgs };
+                                             &initArg1 };
+static const iocshFuncDef initFuncDef = { "cbox2aDriverConfigure", 2, initArgs };
 static void initCallFunc(const iocshArgBuf *args) {
-    cbox2aDriverConfigure(args[0].sval, args[1].sval, args[2].ival, args[3].ival);
+    cbox2aDriverConfigure(args[0].sval, args[1].sval);
 }
 
 void MicroEpsilonCBox2ARegister(void) {
