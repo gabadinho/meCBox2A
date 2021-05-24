@@ -11,16 +11,13 @@ cd "${TOP}"
 dbLoadDatabase "dbd/cbox.dbd"
 cbox_registerRecordDeviceDriver pdbbase
 
-drvAsynSerialPortConfigure("FAKETTY", "/dev/pts/3")
-cbox2aDriverConfigure("MYPORT", "FAKETTY", 2, 3)
+drvAsynSerialPortConfigure("SOCAT_PORT", "/dev/pts/3")
+# Commands to /dev/pts/4 get forwarded to /dev/pts/3
+
+cbox2aDriverConfigure("CBOX2A", "SOCAT_PORT")
 
 ## Load record instances
-#dbLoadRecords("db/xxx.db","user=jg")
-
-dbLoadRecords("${MECBOX2A}/db/microepsilon_cbox2a.template", "P=P:,R=R,PORT=MYPORT,SCAN=Passive,ADDR=0,OMAX=0,IMAX=0")
+dbLoadRecords("${MECBOX2A}/db/microepsilon_cbox2a.template", "P=MICROEPSILON:,R=CBOX2A,PORT=CBOX2A,SCAN=Passive,ADDR=0,OMAX=0,IMAX=0")
 
 cd "${TOP}/iocBoot/${IOC}"
 iocInit
-
-## Start any sequence programs
-#seq sncxxx,"user=jg"

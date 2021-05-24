@@ -5,8 +5,6 @@
 
 #include "asynPortDriver.h"
 
-
-
 #define P_CB2A_FLAGSLO_String  "CB2A_FLAGSLO"
 #define P_CB2A_SERIALNR_String "CB2A_SERIALNR"
 
@@ -29,18 +27,10 @@ public:
 
     virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
 
-    //virtual asynStatus readInt32(asynUser *pasynUser, epicsInt32 *value);
-    //virtual asynStatus readOctet(asynUser *pasynUser, char *value, size_t maxChars, size_t *nActual, int *eomReason);
-
-    void cbox2aTask();  // This should be private but is called from C function
+    void cbox2aTask(); // This should be private but needs to be called from a C function
 
 protected:
 
-    //asynUser *pasynUserController_;
-
-    /*
-    asynUser *pasynUserCBox;
-    */
     char *pasynPortName;
 
     int P_CB2A_FLAGSLO;

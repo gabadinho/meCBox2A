@@ -4,8 +4,11 @@
 
 #include "iocsh.h"
 #include "epicsExport.h"
-#include <epicsString.h>
+#include "epicsString.h"
 #include "epicsThread.h"
+#include "alarm.h"
+
+#include "asynOctet.h"
 
 //#include "asynOctetSyncIO.h"
 
@@ -40,7 +43,6 @@ cbox2aDriver::cbox2aDriver(const char *portName, const char *asynPortName):
                    1, /* Autoconnect */
                    0, /* Default priority */
                    0) /* Default stack size*/ {
-    asynStatus status;
     const char* function_name = "cbox2aDriver";
 
     asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s:%s Creating Micro Epsilon CBox 2A %s to asyn %s\n", driverName, function_name, portName, asynPortName);
@@ -62,6 +64,9 @@ cbox2aDriver::cbox2aDriver(const char *portName, const char *asynPortName):
 }
 
 
+
+/** Wrapper for the asynPortDriver report() method.
+  */
 void cbox2aDriver::report(FILE *fp, int level) {
     asynPortDriver::report(fp, level);
 }
@@ -98,32 +103,34 @@ asynStatus cbox2aDriver::readInt32(asynUser *pasynUser, epicsInt32 *value) {
 asynStatus cbox2aDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 {
     int function = pasynUser->reason;
-    asynStatus status = asynSuccess;
+    asynStatus status;
     const char *param_name;
     const char* function_name = "writeInt32";
     epicsInt32 sensor_range;
 
     /* Set the parameter in the parameter library. */
     status = (asynStatus)setIntegerParam(function, value);
-    /* CHECK STATUS, DONT GO FURTHER IF ERROR!!! */
-    /* Fetch the parameter string name for possible use in debugging */
-    getParamName(function, &param_name);
+	if (status == asynSuccess) {
+		/* Fetch the parameter string name for possible use in debugging */
+		getParamName(function, &param_name);
 
-    if (function == P_CB2A_TYPE_1) {
-        getIntegerParam(P_CB2A_TYPE_1, &sensor_range);
-        setIntegerParam(P_CB2A_RANGE_1, sensor_range);
-    } else if (function == P_CB2A_TYPE_2) {
-        getIntegerParam(P_CB2A_TYPE_2, &sensor_range);
-        setIntegerParam(P_CB2A_RANGE_2, sensor_range);
-    }
+		if (function == P_CB2A_TYPE_1) {
+			getIntegerParam(P_CB2A_TYPE_1, &sensor_range);
+			setIntegerParam(P_CB2A_RANGE_1, sensor_range);
+		} else if (function == P_CB2A_TYPE_2) {
+			getIntegerParam(P_CB2A_TYPE_2, &sensor_range);
+			setIntegerParam(P_CB2A_RANGE_2, sensor_range);
+		}
     
-    /* Do callbacks so higher layers see changes */
-    status = (asynStatus)callParamCallbacks();    
-    if (status) {
-        epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize, "%s:%s: status=%d, function=%d, name=%s, value=%d", driverName, function_name, status, function, param_name, value);
-    } else {
-        asynPrint(pasynUser, ASYN_TRACEIO_DRIVER, "%s:%s: function=%d, name=%s, value=%d\n", driverName, function_name, function, param_name, value);
-    }
+		/* Do callbacks so higher layers see changes */
+		status = (asynStatus)callParamCallbacks();    
+		if (status) {
+			epicsSnprintf(pasynUser->errorMessage, pasynUser->errorMessageSize, "%s:%s: status=%d, function=%d, name=%s, value=%d", driverName, function_name, status, function, param_name, value);
+		} else {
+			asynPrint(pasynUser, ASYN_TRACEIO_DRIVER, "%s:%s: function=%d, name=%s, value=%d\n", driverName, function_name, function, param_name, value);
+		}
+	}
+
     return status;
 }
 
@@ -132,8 +139,7 @@ asynStatus cbox2aDriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 /** Thread function to handle communication to the device.
   * DETAILS HERE!!! */
 /*
- * TO DO: LOWER TIMEOUT
- *        WHEN TIMEOUT: SET ALARM TO ERROR!!!
+ * IF OVERFLOW, SET RECORD TO epicsSevMajor,epicsAlarmComm and exit thread!!!
  */
 void cbox2aDriver::cbox2aTask() {
     static const char *function_name = "cbox2aTask";
@@ -141,6 +147,8 @@ void cbox2aDriver::cbox2aTask() {
     asynUser *pasynUser;
     asynInterface *pasynInterface;
     asynOctet *pasynOctet;
+	int is_connected;
+
     void *octetPvt;
     char charData[256];
     size_t nRequested=10;
@@ -149,9 +157,12 @@ void cbox2aDriver::cbox2aTask() {
     int val=0;
 
     pasynUser = pasynManager->createAsynUser(0, 0);
-    pasynUser->timeout = 10;
+    pasynUser->timeout = 10; // CREATE CONSTANT FOR THIS!!!
     status = pasynManager->connectDevice(pasynUser, pasynPortName, 0);
-
+	if (status != asynSuccess) {
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s: connectDevice failed for %s status=%d\n", driverName, function_name, pasynPortName, status);
+        return;
+    }
     pasynInterface = pasynManager->findInterface(pasynUser, asynOctetType, 1);
     if (!pasynInterface) {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s: findInterface failed for asynOctet, status=%d\n", driverName, function_name, status);
@@ -162,32 +173,50 @@ void cbox2aDriver::cbox2aTask() {
     octetPvt = pasynInterface->drvPvt;
 
     while (true) {
-        printf("AAAAAAAA\n");
-        pasynManager->lockPort(pasynUser);
-        status = pasynOctet->read(octetPvt, pasynUser, charData, nRequested,  &nRead, &eomReason);
+        pasynManager->isConnected(pasynUser, &is_connected);
+		if (is_connected) {
+			//printf("AAAAAAAA\n");
+			pasynManager->lockPort(pasynUser);
+			status = pasynOctet->read(octetPvt, pasynUser, charData, nRequested,  &nRead, &eomReason);
 
-		/*
-        if (nRead==0) pasynUser->auxStatus=1;
-        else  pasynUser->auxStatus=0;
-        */
+			/*
+			if (nRead==0) pasynUser->auxStatus=1;
+			else  pasynUser->auxStatus=0;
+			*/
 
-        pasynManager->unlockPort(pasynUser);
+			pasynManager->unlockPort(pasynUser);
 
-		lock();
-        printf("BBBBBBBB %d\n",nRead);
-        setIntegerParam(P_CB2A_SENSOR_1, nRead);
-		if (nRead==0) {
-          setParamAlarmStatus(P_CB2A_SENSOR_1, 1);
-          setParamAlarmSeverity(P_CB2A_SENSOR_1, 2);
-        } else {
-          setParamAlarmStatus(P_CB2A_SENSOR_1, 0);
-          setParamAlarmSeverity(P_CB2A_SENSOR_1, 0);
+			lock();
+			printf("BBBBBBBB %d\n",nRead);
+			setIntegerParam(P_CB2A_SENSOR_1, nRead);
+			if (nRead==0) {
+                setParamAlarmStatus(P_CB2A_SENSOR_1, epicsAlarmRead);
+                setParamAlarmSeverity(P_CB2A_SENSOR_1, epicsSevMajor);
+			} else {
+                setParamAlarmStatus(P_CB2A_SENSOR_1, epicsAlarmNone);
+                setParamAlarmSeverity(P_CB2A_SENSOR_1, epicsSevNone);
+			}
+
+			callParamCallbacks();
+			unlock();
+
+
+		} else {
+			printf("AAAAAAAA\n");
+            lock();
+			setIntegerParam(P_CB2A_SENSOR_1, 0);
+            setParamAlarmStatus(P_CB2A_SENSOR_1, epicsAlarmComm);
+            setParamAlarmSeverity(P_CB2A_SENSOR_1, epicsSevInvalid);
+			setIntegerParam(P_CB2A_SENSOR_2, 0);
+            setParamAlarmStatus(P_CB2A_SENSOR_2, epicsAlarmComm);
+            setParamAlarmSeverity(P_CB2A_SENSOR_2, epicsSevInvalid);
+            callParamCallbacks();
+            unlock();
+			epicsThreadSleep(1.0); // GET CONSTANT FOR THIS!!!
 		}
-
-        callParamCallbacks();
-        unlock();
     }
 }
+
 
 
 /** EPICS iocsh callable function to call constructor for the cbox2aDriver class.
