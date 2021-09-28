@@ -1,0 +1,7 @@
+file "$(MECBOX2A)/db/microepsilon_cbox2a.template"
+{
+pattern
+{PREFIX,        DEVICE,       PORT,      TYPE1,   SCALE1,   OFFSET1,   TYPE2,   SCALE2,   OFFSET2}
+{ME:,           "CBOX",       CBOX,      4,       1.0,      0.0,       3        1.0,      20.0   }
+}
+

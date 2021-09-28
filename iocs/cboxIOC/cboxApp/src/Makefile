@@ -16,15 +16,13 @@ DBD += cbox.dbd
 cbox_DBD += base.dbd
 
 # Include dbd files from all support applications:
-#cbox_DBD += xxx.dbd
 cbox_DBD += asyn.dbd
 cbox_DBD += drvAsynSerialPort.dbd
+cbox_DBD += drvAsynIPPort.dbd
 cbox_DBD += mecbox2a.dbd
 
 # Add all the support libraries needed by this IOC
-#cbox_LIBS += xxx
 cbox_LIBS += mecbox2a
-# should this be in mecbox2a instead...?
 cbox_LIBS += asyn
 
 # cbox_registerRecordDeviceDriver.cpp derives from cbox.dbd
