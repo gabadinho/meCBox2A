@@ -1,4 +1,4 @@
-record(mbbo,"$(P)$(R)-TYPE1") {
+record(mbbo,"$(PREFIX)$(DEVICE)-TYPE1") {
     field(DESC,"Type of sensor 1")
     field(PINI,"1")
     field(VAL, "$(TYPE1=0)")
@@ -20,68 +20,92 @@ record(mbbo,"$(P)$(R)-TYPE1") {
     field(SXVL, "500")
 }
 
-record (longin,"$(P)$(R)-RANGE1") {
+record (longin,"$(PREFIX)$(DEVICE)-RANGE1") {
     field(DESC,"Range of sensor 1")
     field(DTYP,"asynInt32")
     field(INP, "@asyn($(PORT),0,0)CB2A_RANGE_1")
 	field(SCAN,"I/O Intr")
 }
 
-record (longin,"$(P)$(R)-SENSOR1") {
+record (longin,"$(PREFIX)$(DEVICE)-SENSOR1") {
     field(DESC,"Readout of sensor 1")
     field(DTYP,"asynInt32")
     field(INP, "@asyn($(PORT),0,0)CB2A_SENSOR_1")
 	field(SCAN,"I/O Intr")
 }
 
-record (calcout,"$(P)$(R)-#VALUE1") {
+record(mbbi, "$(PREFIX)$(DEVICE)-STATE1") {
+    field(DESC,"State of sensor 1")
+    field(DTYP,"asynInt32")
+    field(INP, "@asyn($(PORT),0,0)CB2A_STATE_1")
+	field(SCAN,"I/O Intr")
+
+    field (ZRVL, "0")
+    field (ZRST, "OK")
+    field (ZRSV, "NO_ALARM")
+
+    field (ONVL, "1")
+    field (ONST, "UNKNOWN")
+    field (ONSV, "INVALID")
+
+    field (TWVL, "2")
+    field (TWST, "UNKNOWN")
+    field (TWSV, "INVALID")
+
+    field (THVL, "3")
+    field (THST, "Error")
+    field (THSV, "MAJOR")
+}
+
+
+record (calcout,"$(PREFIX)$(DEVICE)-#VALUE1") {
     field(DESC,"Value calc of sensor 1")
-    field(INPA,"$(P)$(R)-SENSOR1 CP")
-    field(INPB,"$(P)$(R)-RANGE1 CP")
+    field(INPA,"$(PREFIX)$(DEVICE)-SENSOR1 CP")
+    field(INPB,"$(PREFIX)$(DEVICE)-RANGE1 CP")
     field(INPC,"0.01")
     field(INPD,"102")
     field(INPE,"65520")
     field(CALC,"C*(A*D/E-1)*B")
     field(PREC,"4")
-    field(OUT, "$(P)$(R)-VALUE1 PP")
+    field(OUT, "$(PREFIX)$(DEVICE)-VALUE1 PP")
 }
 
-record (ai,"$(P)$(R)-VALUE1") {
+record (ai,"$(PREFIX)$(DEVICE)-VALUE1") {
     field(DESC,"Readout value of sensor 1")
     field(DTYP,"Soft Channel")
-    field(INP, "$(P)$(R)-#VALUE1")
+    field(INP, "$(PREFIX)$(DEVICE)-#VALUE1")
     field(PREC,"4")
     field(DESC,"mm")
 }
 
-record (ai,"$(P)$(R)-SCALE1") {
+record (ai,"$(PREFIX)$(DEVICE)-SCALE1") {
     field(DESC,"Scale for sensor 1")
     field(DTYP,"Soft Channel")
     field(INP, "$(SCALE1=1.0)")
     field(PREC,"4")
 }
 
-record (ai,"$(P)$(R)-OFFSET1") {
+record (ai,"$(PREFIX)$(DEVICE)-OFFSET1") {
     field(DESC,"Offset for sensor 1")
     field(DTYP,"Soft Channel")
     field(INP, "$(OFFSET1=0.0)")
     field(PREC,"4")
 }
 
-record (calcout,"$(P)$(R)-#USER1") {
+record (calcout,"$(PREFIX)$(DEVICE)-#USER1") {
     field(DESC,"User calc of sensor 1")
-    field(INPA,"$(P)$(R)-VALUE1 CP")
-    field(INPB,"$(P)$(R)-SCALE1 CP")
-    field(INPC,"$(P)$(R)-OFFSET1 CP")
+    field(INPA,"$(PREFIX)$(DEVICE)-VALUE1 CP")
+    field(INPB,"$(PREFIX)$(DEVICE)-SCALE1 CP")
+    field(INPC,"$(PREFIX)$(DEVICE)-OFFSET1 CP")
     field(CALC,"A*B+C")
     field(PREC,"4")
-    field(OUT, "$(P)$(R)-USER1 PP")
+    field(OUT, "$(PREFIX)$(DEVICE)-USER1 PP")
 }
 
-record (ai,"$(P)$(R)-USER1") {
+record (ai,"$(PREFIX)$(DEVICE)-USER1") {
     field(DESC,"User value of sensor 1")
     field(DTYP,"Soft Channel")
-    field(INP, "$(P)$(R)-#USER1")
+    field(INP, "$(PREFIX)$(DEVICE)-#USER1")
     field(PREC,"4")
     field(EGU, "mm")
 }
@@ -89,7 +113,7 @@ record (ai,"$(P)$(R)-USER1") {
 
 
 
-record(mbbo,"$(P)$(R)-TYPE2") {
+record(mbbo,"$(PREFIX)$(DEVICE)-TYPE2") {
     field(PINI,"1")
     field(VAL, "$(TYPE2=0)")
     field(DTYP,"asynInt32")
@@ -110,90 +134,119 @@ record(mbbo,"$(P)$(R)-TYPE2") {
     field(SXVL, "500")
 }
 
-record (longin,"$(P)$(R)-RANGE2") {
+record (longin,"$(PREFIX)$(DEVICE)-RANGE2") {
     field(DTYP,"asynInt32")
     field(INP, "@asyn($(PORT),0,0)CB2A_RANGE_2")
 	field(SCAN,"I/O Intr")
 }
 
-record (longin,"$(P)$(R)-SENSOR2") {
+record (longin,"$(PREFIX)$(DEVICE)-SENSOR2") {
     field(DTYP,"asynInt32")
     field(INP, "@asyn($(PORT),0,0)CB2A_SENSOR_2")
     field(SCAN,"I/O Intr")
 }
 
-record (calcout,"$(P)$(R)-#VALUE2") {
+record(mbbi, "$(PREFIX)$(DEVICE)-STATE2") {
+    field(DESC,"State of sensor 2")
+    field(DTYP,"asynInt32")
+    field(INP, "@asyn($(PORT),0,0)CB2A_STATE_2")
+	field(SCAN,"I/O Intr")
+
+    field (ZRVL, "0")
+    field (ZRST, "OK")
+    field (ZRSV, "NO_ALARM")
+
+    field (ONVL, "1")
+    field (ONST, "UNKNOWN")
+    field (ONSV, "INVALID")
+
+    field (TWVL, "2")
+    field (TWST, "UNKNOWN")
+    field (TWSV, "INVALID")
+
+    field (THVL, "3")
+    field (THST, "Error")
+    field (THSV, "MAJOR")
+}
+
+record (calcout,"$(PREFIX)$(DEVICE)-#VALUE2") {
     field(DESC,"Value calc of sensor 2")
-    field(INPA,"$(P)$(R)-SENSOR2 CP")
-    field(INPB,"$(P)$(R)-RANGE2 CP")
+    field(INPA,"$(PREFIX)$(DEVICE)-SENSOR2 CP")
+    field(INPB,"$(PREFIX)$(DEVICE)-RANGE2 CP")
     field(INPC,"0.01")
     field(INPD,"102")
     field(INPE,"65520")
     field(CALC,"C*(A*D/E-1)*B")
     field(PREC,"4")
-    field(OUT, "$(P)$(R)-VALUE2 PP")
+    field(OUT, "$(PREFIX)$(DEVICE)-VALUE2 PP")
 }
 
-record (ai,"$(P)$(R)-VALUE2") {
+record (ai,"$(PREFIX)$(DEVICE)-VALUE2") {
     field(DESC,"Readout value of sensor 2")
     field(DTYP,"Soft Channel")
-    field(INP, "$(P)$(R)-#VALUE2")
+    field(INP, "$(PREFIX)$(DEVICE)-#VALUE2")
     field(PREC,"4")
     field(DESC,"mm")
 }
 
-record (ai,"$(P)$(R)-SCALE2") {
+record (ai,"$(PREFIX)$(DEVICE)-SCALE2") {
     field(DESC,"Scale for sensor 2")
     field(DTYP,"Soft Channel")
     field(INP, "$(SCALE2=1.0)")
     field(PREC,"4")
 }
 
-record (ai,"$(P)$(R)-OFFSET2") {
+record (ai,"$(PREFIX)$(DEVICE)-OFFSET2") {
     field(DESC,"Offset for sensor 2")
     field(DTYP,"Soft Channel")
     field(INP, "$(OFFSET2=0.0)")
     field(PREC,"4")
 }
 
-record (calcout,"$(P)$(R)-#USER2") {
+record (calcout,"$(PREFIX)$(DEVICE)-#USER2") {
     field(DESC,"User calc of sensor 2")
-    field(INPA,"$(P)$(R)-VALUE2 CP")
-    field(INPB,"$(P)$(R)-SCALE2 CP")
-    field(INPC,"$(P)$(R)-OFFSET12CP")
+    field(INPA,"$(PREFIX)$(DEVICE)-VALUE2 CP")
+    field(INPB,"$(PREFIX)$(DEVICE)-SCALE2 CP")
+    field(INPC,"$(PREFIX)$(DEVICE)-OFFSET12CP")
     field(CALC,"A*B+C")
     field(PREC,"4")
-    field(OUT, "$(P)$(R)-USER2 PP")
+    field(OUT, "$(PREFIX)$(DEVICE)-USER2 PP")
 }
 
-record (ai,"$(P)$(R)-USER2") {
+record (ai,"$(PREFIX)$(DEVICE)-USER2") {
     field(DESC,"User value of sensor 2")
     field(DTYP,"Soft Channel")
-    field(INP, "$(P)$(R)-#USER2")
+    field(INP, "$(PREFIX)$(DEVICE)-#USER2")
     field(PREC,"4")
     field(EGU, "mm")
 }
 
 
 
-record (longin,"$(P)$(R)-FLAGSLO") {
+record (longin,"$(PREFIX)$(DEVICE)-FLAGS1") {
     field(DTYP,"asynInt32")
-    field(INP, "@asyn($(PORT),0,0)CB2A_FLAGSLO")
+    field(INP, "@asyn($(PORT),0,0)CB2A_FLAGS1")
     field(SCAN,"I/O Intr")
 }
 
-record (longin,"$(P)$(R)-SERIALNR") {
+record (longin,"$(PREFIX)$(DEVICE)-SERIALNR") {
     field(DTYP,"asynInt32")
     field(INP, "@asyn($(PORT),0,0)CB2A_SERIALNR")
     field(SCAN,"I/O Intr")
 }
 
+record (ai,"$(PREFIX)$(DEVICE)-FRAMECOUNTER") {
+    field(DTYP,"asynFloat64")
+    field(INP, "@asyn($(PORT),0,0)CB2A_FRAMECOUNTER")
+    field(SCAN,"I/O Intr")
+}
 
 
-record(asyn,"$(P)$(R):ASYN") {
+
+record(asyn,"$(PREFIX)$(DEVICE):ASYN") {
     field(DTYP,"asynRecordDevice")
     field(PORT,"$(PORT)")
-    field(ADDR,"$(ADDR)")
-    field(OMAX,"$(OMAX)")
-    field(IMAX,"$(IMAX)")
+    field(ADDR,"$(ADDR=0)")
+    field(OMAX,"$(OMAX=100)")
+    field(IMAX,"$(IMAX=100)")
 }
