@@ -35,6 +35,8 @@ const size_t DATAFRAME_STATE1_OFFSET  = 30;
 const size_t DATAFRAME_SENSOR2_OFFSET = 32;
 const size_t DATAFRAME_STATE2_OFFSET  = 34;
 
+#define FRAME_SIZE 36
+
 
 
 struct extractedData {
@@ -58,10 +60,10 @@ public:
 
     void cbox2aTask(); // This should be private but needs to be called from a C function
 
-    static void ringBufferAppend(unsigned char *ring_buffer, size_t ring_buffer_size, size_t *ring_buffer_next_write_idx, unsigned char *read_buffer, size_t bytes_read);
+    static void ringBufferAppend(unsigned char *ring_buffer, size_t ring_buffer_size, size_t *ring_buffer_next_write_idx, const unsigned char *read_buffer, size_t bytes_read);
 
-    static unsigned char * findPreamble(unsigned char *buffer, size_t buffer_len);
-    static bool extractData(unsigned char *buffer, struct extractedData *storage);
+    static const unsigned char * findPreamble(const unsigned char *buffer, size_t buffer_len);
+    static bool extractData(const unsigned char *buffer, struct extractedData *storage);
 
     void invalidateEverything();
 

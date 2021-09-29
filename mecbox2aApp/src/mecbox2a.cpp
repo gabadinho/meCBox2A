@@ -17,7 +17,6 @@
 #define DEVICE_TIMEOUT 10
 #define TASK_DISCONNECTED_SLEEP 1.0
 
-#define FRAME_SIZE  36
 #define BUFFER_SIZE 3600
 
 
@@ -214,7 +213,7 @@ void cbox2aDriver::cbox2aTask() {
     size_t buffer_next_write_idx;
 
     struct extractedData extracted_data;
-    unsigned char *start_of_data;
+    const unsigned char *start_of_data;
     bool data_valid;
 
     buffer = (unsigned char *)malloc(BUFFER_SIZE);
@@ -334,7 +333,7 @@ void cbox2aDriver::cbox2aTask() {
   * \param[in] read_buffer Buffer of bytes read from the device
   * \param[in] bytes_read Valid number of read bytes
   */
-void cbox2aDriver::ringBufferAppend(unsigned char *ring_buffer, size_t ring_buffer_size, size_t *ring_buffer_next_write_idx, unsigned char *read_buffer, size_t bytes_read) {
+void cbox2aDriver::ringBufferAppend(unsigned char *ring_buffer, size_t ring_buffer_size, size_t *ring_buffer_next_write_idx, const unsigned char *read_buffer, size_t bytes_read) {
     size_t buffer_available, buffer_remain;
 
     *ring_buffer_next_write_idx = (*ring_buffer_next_write_idx) % ring_buffer_size; // Make sure we're in the proper range
@@ -365,8 +364,8 @@ void cbox2aDriver::ringBufferAppend(unsigned char *ring_buffer, size_t ring_buff
   *
   * \return Pointer to the start of the data frame, or NULL if preamble not found
   */
-unsigned char * cbox2aDriver::findPreamble(unsigned char *buffer, size_t buffer_len) {
-    unsigned char *preamble_ptr = NULL;
+const unsigned char * cbox2aDriver::findPreamble(const unsigned char *buffer, size_t buffer_len) {
+    const unsigned char *preamble_ptr = NULL;
     size_t buffer_read_idx, buffer_preamble_idx, preamble_lookout;
 
     if (buffer_len >= FRAME_SIZE) {
@@ -402,7 +401,7 @@ unsigned char * cbox2aDriver::findPreamble(unsigned char *buffer, size_t buffer_
   *
   * \return false if storage is NULL or if buffer invalid, otherwise true
   */
-bool cbox2aDriver::extractData(unsigned char *buffer, struct extractedData *storage) {
+bool cbox2aDriver::extractData(const unsigned char *buffer, struct extractedData *storage) {
     unsigned int *raw32;
     unsigned short *raw16;
 

@@ -25,6 +25,7 @@ record (longin,"$(PREFIX)$(DEVICE)-RANGE1") {
     field(DTYP,"asynInt32")
     field(INP, "@asyn($(PORT),0,0)CB2A_RANGE_1")
 	field(SCAN,"I/O Intr")
+    field(DESC,"mm")
 }
 
 record (longin,"$(PREFIX)$(DEVICE)-SENSOR1") {
@@ -90,6 +91,7 @@ record (ai,"$(PREFIX)$(DEVICE)-OFFSET1") {
     field(DTYP,"Soft Channel")
     field(INP, "$(OFFSET1=0.0)")
     field(PREC,"4")
+    field(DESC,"mm")
 }
 
 record (calcout,"$(PREFIX)$(DEVICE)-#USER1") {
@@ -138,6 +140,7 @@ record (longin,"$(PREFIX)$(DEVICE)-RANGE2") {
     field(DTYP,"asynInt32")
     field(INP, "@asyn($(PORT),0,0)CB2A_RANGE_2")
 	field(SCAN,"I/O Intr")
+    field(DESC,"mm")
 }
 
 record (longin,"$(PREFIX)$(DEVICE)-SENSOR2") {
@@ -201,13 +204,14 @@ record (ai,"$(PREFIX)$(DEVICE)-OFFSET2") {
     field(DTYP,"Soft Channel")
     field(INP, "$(OFFSET2=0.0)")
     field(PREC,"4")
+    field(DESC,"mm")
 }
 
 record (calcout,"$(PREFIX)$(DEVICE)-#USER2") {
     field(DESC,"User calc of sensor 2")
     field(INPA,"$(PREFIX)$(DEVICE)-VALUE2 CP")
     field(INPB,"$(PREFIX)$(DEVICE)-SCALE2 CP")
-    field(INPC,"$(PREFIX)$(DEVICE)-OFFSET12CP")
+    field(INPC,"$(PREFIX)$(DEVICE)-OFFSET2 CP")
     field(CALC,"A*B+C")
     field(PREC,"4")
     field(OUT, "$(PREFIX)$(DEVICE)-USER2 PP")
