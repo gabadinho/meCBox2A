@@ -8,15 +8,17 @@
 #include <gtest/gtest.h>
 
 void gtestHook(initHookState state) {
+    static int testrun_res = 0;
+
     if (state == initHookAtIocBuild) {
         epicsStdoutPrintf("gtestIOC: initializing GoogleTest\n");
         ::testing::InitGoogleTest();
     } else if (state == initHookAfterDatabaseRunning) {
         epicsStdoutPrintf("gtestIOC: running GoogleTest tests\n");
-        RUN_ALL_TESTS();
+        testrun_res = RUN_ALL_TESTS();
     } else if (state == initHookAfterIocRunning) {
         epicsStdoutPrintf("gtestIOC: exiting...\n");
-        epicsExit(0);
+        epicsExit(testrun_res);
     }
 }
 
