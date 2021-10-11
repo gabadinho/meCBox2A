@@ -1,7 +1,7 @@
 TOP = ..
 include $(TOP)/configure/CONFIG
 
-DIRS += cboxIOC
+DIRS += cboxIOC gtestIOC
 
 include $(TOP)/configure/RULES_TOP
 

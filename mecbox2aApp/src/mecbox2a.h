@@ -1,3 +1,11 @@
+/*
+FILENAME...   mecbox2a.h
+USAGE...      Asyn driver support for the Micro-Epsilon C-Box/2A laser distance sensor
+
+Jose G.C. Gabadinho
+August 2021
+*/
+
 #ifndef _CBOX2A_H_
 #define _CBOX2A_H_
 
@@ -54,10 +62,12 @@ public:
     cbox2aDriver(const char *portName, const char *asynPortName);
     virtual ~cbox2aDriver() {}
 
+    // These are the methods we override from the base class
     virtual void report(FILE *fp, int level);
 
     virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
 
+    // Specific class methods
     void cbox2aTask(); // This should be private but needs to be called from a C function
 
     static void ringBufferAppend(unsigned char *ring_buffer, size_t ring_buffer_size, size_t *ring_buffer_next_write_idx, const unsigned char *read_buffer, size_t bytes_read);
@@ -69,8 +79,6 @@ public:
 
 protected:
     void bufferDebugPrint(unsigned char *buffer, size_t buffer_len);
-
-    char *pasynPortName;
 
     int P_CB2A_FLAGS1;
     int P_CB2A_SERIALNR;
@@ -85,6 +93,9 @@ protected:
     int P_CB2A_RANGE_2;
     int P_CB2A_SENSOR_2;
     int P_CB2A_STATE_2;
+
+private:
+    char *pasynPortName;
 };
 
 #endif // __cplusplus

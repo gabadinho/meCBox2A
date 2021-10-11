@@ -1,8 +1,16 @@
-#include "mecbox2a.h"
+/*
+FILENAME...   mecbox2a.cpp
+USAGE...      Asyn driver support for the Micro-Epsilon C-Box/2A laser distance sensor
+
+Jose G.C. Gabadinho
+August 2021
+*/
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <memory.h>
+
+#include "mecbox2a.h"
 
 #include <iocsh.h>
 #include <epicsExport.h>
@@ -21,7 +29,7 @@
 
 
 
-static const char *driverName="meCBox2A";
+static const char *driverName = "meCBox2A";
 
 static void cbox2aTaskC(void *drvPvt);
 
@@ -82,7 +90,7 @@ cbox2aDriver::cbox2aDriver(const char *portName, const char *asynPortName):
 
     asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW, "%s:%s Creating Micro Epsilon CBox 2A %s to asyn %s\n", driverName, function_name, portName, asynPortName);
 
-    pasynPortName = epicsStrDup(asynPortName);
+    this->pasynPortName = epicsStrDup(asynPortName);
 
     createParam(P_CB2A_FLAGS1_String,  asynParamInt32, &P_CB2A_FLAGS1);
     createParam(P_CB2A_SERIALNR_String, asynParamInt32, &P_CB2A_SERIALNR);
@@ -218,20 +226,20 @@ void cbox2aDriver::cbox2aTask() {
 
     buffer = (unsigned char *)malloc(BUFFER_SIZE);
 	if (!buffer) {
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s: failed to allocate buffer memory for %s\n", driverName, function_name, pasynPortName);
+        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s: failed to allocate buffer memory for %s\n", driverName, function_name, this->pasynPortName);
         return;
     }
 
     pasynUser = pasynManager->createAsynUser(0, 0);
     pasynUser->timeout = DEVICE_TIMEOUT;
-    status = pasynManager->connectDevice(pasynUser, pasynPortName, 0);
+    status = pasynManager->connectDevice(pasynUser, this->pasynPortName, 0);
 	if (status != asynSuccess) {
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s: connectDevice failed for %s status=%d\n", driverName, function_name, pasynPortName, status);
+        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s: connectDevice failed for %s status=%d\n", driverName, function_name, this->pasynPortName, status);
         return;
     }
     pasynInterface = pasynManager->findInterface(pasynUser, asynOctetType, 1);
     if (!pasynInterface) {
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s: findInterface failed for asynOctet, status=%d\n", driverName, function_name, status);
+        asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s: findInterface failed for asynOctet, status=%d\n", driverName, function_name, status);
         return;
     }
 
@@ -255,7 +263,7 @@ void cbox2aDriver::cbox2aTask() {
                 pasynUser->auxStatus = asynSuccess;
 
                 if (bytes_read != FRAME_SIZE) {
-                    asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s: read %ld bytes from %s, was expecting %d (data frame misconfigured perhaps?)\n", driverName, function_name, bytes_read, pasynPortName, FRAME_SIZE);
+                    asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s: read %ld bytes from %s, was expecting %d (data frame misconfigured perhaps?)\n", driverName, function_name, bytes_read, this->pasynPortName, FRAME_SIZE);
                 }
                 ringBufferAppend(buffer, BUFFER_SIZE, &buffer_next_write_idx, frame_buffer, bytes_read);
             }
@@ -308,7 +316,7 @@ void cbox2aDriver::cbox2aTask() {
 			callParamCallbacks();
 			unlock();
 		} else {
-            asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s: isConnected failed for %s\n", driverName, function_name, pasynPortName);
+            asynPrint(this->pasynUserSelf, ASYN_TRACE_ERROR, "%s::%s: isConnected failed for %s\n", driverName, function_name, this->pasynPortName);
 
             lock();
             invalidateEverything();
